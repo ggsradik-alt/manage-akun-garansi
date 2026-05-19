@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SuperGrok - Manajemen Akun Garansi</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e2937);
+    color: #e2e8f0;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .container { max-width: 1280px; margin: 0 auto; }
+  h1 { text-align: center; color: #60a5fa; margin: 0 0 6px; }
+  .subtitle { text-align: center; color: #94a3b8; margin: 0 0 24px; }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .toolbar input[type="search"],
+  .toolbar select {
+    background: #1e2937;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .toolbar input[type="search"] { flex: 1; min-width: 220px; }
+  .toolbar .spacer { flex: 1; }
+
+  .btn {
+    padding: 9px 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: filter 0.15s, transform 0.05s;
+    color: white;
+    white-space: nowrap;
+  }
+  .btn:hover { filter: brightness(1.12); }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: #3b82f6; }
+  .btn-secondary { background: #475569; }
+  .btn-export { background: #10b981; }
+  .btn-danger { background: #ef4444; }
+  .btn-warn { background: #f59e0b; color: #0f172a; }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+  /* Stats */
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stat {
+    background: #1e2937;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    font-size: 14px;
+  }
+  .stat .label { color: #94a3b8; }
+  .stat .value { font-weight: bold; color: #e2e8f0; margin-left: 6px; }
+  .stat .value.claim { color: #f59e0b; }
+  .stat .value.backfree { color: #eab308; }
+  .stat .value.suspend { color: #ef4444; }
+  .stat .value.ok { color: #22c55e; }
+
+  /* Table */
+  .table-wrap {
+    background: #1e2937;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  th {
+    background: #334155;
+    padding: 13px 12px;
+    text-align: left;
+    color: #60a5fa;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  td {
+    padding: 12px;
+    border-bottom: 1px solid #334155;
+    font-size: 14px;
+    vertical-align: middle;
+  }
+  tr:hover td { background: #273549; }
+  td .email-cell { font-weight: 600; }
+  td code {
+    background: #334155;
+    padding: 3px 7px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  td .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .status {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+  }
+  .status-claim    { background: #f59e0b; color: #0f172a; }
+  .status-backfree { background: #eab308; color: #0f172a; }
+  .status-suspend  { background: #ef4444; color: white;   }
+  .status-ok       { background: #22c55e; color: #0f172a; }
+
+  .ss-count {
+    background: #334155;
+    color: #e2e8f0;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .ss-count.has-ss { background: #10b981; color: #0f172a; }
+
+  .empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 16px;
+  }
+  .footer-note {
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    margin-top: 20px;
+    padding: 10px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-box {
+    background: #1e2937;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 760px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #334155;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #334155;
+  }
+  .modal-header h2 { margin: 0; color: #60a5fa; font-size: 18px; }
+  .modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 22px;
+    cursor: pointer;
+  }
+  .modal-close:hover { color: #ef4444; }
+  .modal-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #334155;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .form-grid label.full-row { grid-column: 1 / -1; }
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea {
+    background: #334155;
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    padding: 9px 11px;
+    border-radius: 7px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .form-grid input:focus,
+  .form-grid select:focus,
+  .form-grid textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+  .req { color: #ef4444; }
+  .pwd-wrap { display: flex; gap: 6px; }
+  .pwd-wrap input { flex: 1; }
+  .pwd-toggle {
+    background: #475569;
+    border: none;
+    color: white;
+    padding: 0 12px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+
+  /* Screenshots */
+  .screenshots-section {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid #334155;
+  }
+  .screenshots-section h3 {
+    margin: 0 0 10px;
+    color: #60a5fa;
+    font-size: 15px;
+  }
+  .upload-area {
+    border: 2px dashed #475569;
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #94a3b8;
+  }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: #3b82f6;
+    background: #273549;
+  }
+  .upload-area p { margin: 0 0 5px; font-weight: 600; color: #e2e8f0; }
+  .upload-area small { font-size: 12px; }
+  .screenshot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .screenshot-thumb {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0f172a;
+    aspect-ratio: 1;
+    cursor: pointer;
+  }
+  .screenshot-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .screenshot-thumb .remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(239,68,68,0.92);
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .screenshot-thumb .label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    font-size: 11px;
+    padding: 3px 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    cursor: zoom-out;
+  }
+  .lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .lightbox .close-hint {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    color: #94a3b8;
+    font-size: 14px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    z-index: 300;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: #ef4444; }
+
+  /* Dropdown */
+  .dropdown { position: relative; }
+  .dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    background: #1e2937;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    min-width: 220px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    overflow: hidden;
+    display: none;
+    z-index: 50;
+  }
+  .dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu button {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #e2e8f0;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .dropdown-menu button:hover { background: #334155; }
+
+  @media (max-width: 700px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .toolbar input[type="search"] { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📋 SuperGrok Account Manager</h1>
+  <p class="subtitle">Catatan & Manajemen Akun Garansi</p>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="🔍 Cari email, order ID, marketplace, catatan...">
+    <select id="filter-status">
+      <option value="">Semua Status</option>
+      <option value="Claim">Claim</option>
+      <option value="Backfree">Backfree</option>
+      <option value="Suspend">Suspend</option>
+      <option value="OK">OK</option>
+    </select>
+    <button class="btn btn-primary" onclick="openAdd()">+ Tambah Akun</button>
+    <div class="spacer"></div>
+    <button class="btn btn-export" onclick="exportSelfContained()">📤 Export untuk Team Garansi</button>
+    <div class="dropdown" id="more-dropdown">
+      <button class="btn btn-secondary" onclick="toggleMore(event)">⋯ Lainnya</button>
+      <div class="dropdown-menu">
+        <button onclick="exportJSON()">💾 Backup ke JSON</button>
+        <button onclick="document.getElementById('import-file').click()">📥 Restore dari JSON</button>
+        <button onclick="markAllForClaim()">🏷️ Tandai Semua: Claim</button>
+        <button onclick="confirmClearAll()">🗑️ Hapus Semua Data</button>
+      </div>
+    </div>
+    <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importJSON(event)">
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="label">Total:</span><span class="value" id="stat-total">0</span></div>
+    <div class="stat"><span class="label">Claim:</span><span class="value claim" id="stat-claim">0</span></div>
+    <div class="stat"><span class="label">Backfree:</span><span class="value backfree" id="stat-backfree">0</span></div>
+    <div class="stat"><span class="label">Suspend:</span><span class="value suspend" id="stat-suspend">0</span></div>
+    <div class="stat"><span class="label">OK:</span><span class="value ok" id="stat-ok">0</span></div>
+    <div class="stat"><span class="label">Storage:</span><span class="value" id="stat-storage">0 KB</span></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="account-table">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Marketplace</th>
+          <th>Order ID</th>
+          <th>Tgl Order</th>
+          <th>📷</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="account-tbody"></tbody>
+    </table>
+    <div id="empty-state" class="empty-state" hidden>Tidak ada akun. Klik "+ Tambah Akun" untuk memulai.</div>
+  </div>
+
+  <div class="footer-note">
+    ⚠️ Data tersimpan di browser (localStorage). Lakukan <strong>Backup ke JSON</strong> secara berkala agar data tidak hilang.
+  </div>
+</div>
+
+<!-- Modal Detail / Edit -->
+<div id="modal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-title">Detail Akun</h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="Tutup">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>Email <span class="req">*</span>
+          <input type="text" id="m-email" autocomplete="off">
+        </label>
+        <label>Password <span class="req">*</span>
+          <div class="pwd-wrap">
+            <input type="password" id="m-password" autocomplete="off">
+            <button type="button" class="pwd-toggle" onclick="togglePwd()" title="Tampilkan/sembunyikan">👁</button>
+          </div>
+        </label>
+        <label>Status
+          <select id="m-status">
+            <option value="OK">OK</option>
+            <option value="Claim">Claim</option>
+            <option value="Backfree">Backfree</option>
+            <option value="Suspend">Suspend</option>
+          </select>
+        </label>
+        <label>Marketplace
+          <select id="m-marketplace">
+            <option value="">— pilih —</option>
+            <option>Shopee</option>
+            <option>Tokopedia</option>
+            <option>Tiktok Shop</option>
+            <option>Lazada</option>
+            <option>Bukalapak</option>
+            <option>Lainnya</option>
+          </select>
+        </label>
+        <label>Order ID / Invoice
+          <input type="text" id="m-orderid">
+        </label>
+        <label>&nbsp;</label>
+        <label>Tanggal Order
+          <input type="date" id="m-orderdate">
+        </label>
+        <label>Tanggal Claim
+          <input type="date" id="m-claimdate">
+        </label>
+        <label class="full-row">Alasan Claim
+          <textarea id="m-reason" rows="2" placeholder="Mis: Akun di-suspend tanpa pemberitahuan setelah 3 hari pemakaian"></textarea>
+        </label>
+        <label class="full-row">Catatan
+          <textarea id="m-note" rows="2" placeholder="Catatan tambahan untuk diri sendiri / team"></textarea>
+        </label>
+      </div>
+
+      <div class="screenshots-section">
+        <h3>📸 Screenshot Bukti Order</h3>
+        <div class="upload-area" id="upload-area">
+          <input type="file" id="m-files" accept="image/*" multiple style="display:none">
+          <p>Klik di sini atau drag & drop gambar</p>
+          <small>Otomatis dikompres (max 1600px, JPEG 85%) untuk hemat ruang</small>
+        </div>
+        <div id="m-screenshots" class="screenshot-grid"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveModal()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox" hidden onclick="closeLightbox()">
+  <span class="close-hint">Klik di mana saja atau tekan ESC untuk tutup</span>
+  <img id="lightbox-img" alt="Preview">
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ============================================================
+   STATE
+============================================================ */
+const STORAGE_KEY = 'supergrok_accounts_v2';
+const LEGACY_KEY = 'supergrok_accounts';
+
+const DEFAULT_ACCOUNTS = [
+  { email:"j4xv6luc@cogil.id",  password:"N6aX12Ickwf@", status:"Backfree" },
+  { email:"z8bradmr@cogil.id",  password:"Ft@u4uJQNc3B", status:"Suspend"  },
+  { email:"qnra0bj1@cogil.id",  password:"@4PypQbveHYU", status:"Backfree" },
+  { email:"v9y6rt28@cogil.id",  password:"qUg1iKfSz@8Q", status:"Suspend"  },
+  { email:"wtijcjzo@cogil.id",  password:"ax@SuqAruQ3V", status:"Claim"    },
+  { email:"mit00o74@cegil.id",  password:"AHP@xAK1MSwE", status:"Backfree" },
+  { email:"lacuto57@tmailbox.site", password:"freepalestine1", status:"Suspend" }
+];
+
+function blankAccount() {
+  return {
+    email: '', password: '', status: 'OK',
+    note: '', reason: '',
+    orderDate: '', claimDate: '',
+    marketplace: '', orderId: '',
+    screenshots: []
+  };
+}
+
+let accounts = [];
+let editingIndex = -1;       // -1 = adding new
+let editingDraft = null;     // working copy (so Cancel discards changes)
+
+/* ============================================================
+   UTILITIES
+============================================================ */
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function $(id) { return document.getElementById(id); }
+function showToast(msg, isError) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function formatDate(d) {
+  if (!d) return '—';
+  return d;
+}
+
+/* ============================================================
+   PERSISTENCE
+============================================================ */
+function loadAccounts() {
+  // try v2 first
+  let raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    // migrate from legacy key if present
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy) raw = legacy;
+  }
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        accounts = parsed.map(a => ({ ...blankAccount(), ...a, screenshots: a.screenshots || [] }));
+        return;
+      }
+    } catch (e) { console.warn('Failed to parse stored data', e); }
+  }
+  // first time -> seed with defaults
+  accounts = DEFAULT_ACCOUNTS.map(a => ({ ...blankAccount(), ...a }));
+  save();
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+    updateStorageStat();
+    return true;
+  } catch (e) {
+    if (e && e.name === 'QuotaExceededError') {
+      showToast('Penyimpanan penuh! Hapus screenshot yang tidak perlu atau backup ke JSON.', true);
+    } else {
+      showToast('Gagal menyimpan: ' + e.message, true);
+    }
+    return false;
+  }
+}
+
+function updateStorageStat() {
+  const raw = localStorage.getItem(STORAGE_KEY) || '';
+  const kb = (raw.length / 1024).toFixed(1);
+  $('stat-storage').textContent = kb + ' KB';
+}
+
+/* ============================================================
+   RENDER
+============================================================ */
+function getFilteredIndices() {
+  const q = ($('search').value || '').trim().toLowerCase();
+  const status = $('filter-status').value;
+  const out = [];
+  accounts.forEach((a, i) => {
+    if (status && a.status !== status) return;
+    if (q) {
+      const hay = [a.email, a.orderId, a.marketplace, a.note, a.reason].map(x => (x || '').toLowerCase()).join(' ');
+      if (hay.indexOf(q) === -1) return;
+    }
+    out.push(i);
+  });
+  return out;
+}
+
+function renderTable() {
+  const tbody = $('account-tbody');
+  tbody.innerHTML = '';
+  const visible = getFilteredIndices();
+
+  if (accounts.length === 0) {
+    $('empty-state').hidden = false;
+    $('empty-state').textContent = 'Belum ada akun. Klik "+ Tambah Akun" untuk memulai.';
+  } else if (visible.length === 0) {
+    $('empty-state').hidden = false;
+    $('empty-state').textContent = 'Tidak ada akun yang cocok dengan filter / pencarian.';
+  } else {
+    $('empty-state').hidden = true;
+  }
+
+  visible.forEach((i, displayIdx) => {
+    const a = accounts[i];
+    const tr = document.createElement('tr');
+    const statusClass = 'status-' + (a.status || 'ok').toLowerCase();
+    const ssCount = (a.screenshots || []).length;
+    tr.innerHTML = `
+      <td>${displayIdx + 1}</td>
+      <td>
+        <div class="email-cell">${escapeHtml(a.email)}</div>
+        <div style="color:#94a3b8; font-size:12px; margin-top:3px;">
+          ${a.note ? '📝 ' + escapeHtml(a.note.slice(0, 60)) + (a.note.length > 60 ? '…' : '') : ''}
+        </div>
+      </td>
+      <td><span class="status ${statusClass}">${escapeHtml((a.status || 'OK').toUpperCase())}</span></td>
+      <td>${escapeHtml(a.marketplace || '—')}</td>
+      <td>${a.orderId ? '<code>' + escapeHtml(a.orderId) + '</code>' : '—'}</td>
+      <td>${escapeHtml(formatDate(a.orderDate))}</td>
+      <td>
+        <span class="ss-count ${ssCount > 0 ? 'has-ss' : ''}" onclick="openDetail(${i})" title="Lihat screenshot">
+          ${ssCount > 0 ? '📷 ' + ssCount : '—'}
+        </span>
+      </td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-primary btn-sm" onclick="openDetail(${i})">Detail</button>
+          <button class="btn btn-warn btn-sm" onclick="quickClaim(${i})" title="Tandai sebagai Claim">Claim</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAccount(${i})">Hapus</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Stats
+  $('stat-total').textContent = accounts.length;
+  $('stat-claim').textContent = accounts.filter(a => a.status === 'Claim').length;
+  $('stat-backfree').textContent = accounts.filter(a => a.status === 'Backfree').length;
+  $('stat-suspend').textContent = accounts.filter(a => a.status === 'Suspend').length;
+  $('stat-ok').textContent = accounts.filter(a => a.status === 'OK').length;
+  updateStorageStat();
+}
+
+/* ============================================================
+   ACTIONS
+============================================================ */
+function quickClaim(i) {
+  accounts[i].status = 'Claim';
+  if (save()) { renderTable(); showToast('Status diubah ke Claim'); }
+}
+
+function deleteAccount(i) {
+  if (!confirm('Yakin hapus akun ' + accounts[i].email + '?\nSemua screenshot terkait juga akan terhapus.')) return;
+  accounts.splice(i, 1);
+  if (save()) { renderTable(); showToast('Akun dihapus'); }
+}
+
+function markAllForClaim() {
+  closeMore();
+  if (!confirm('Tandai SEMUA akun sebagai Claim?')) return;
+  accounts.forEach(a => a.status = 'Claim');
+  if (save()) { renderTable(); showToast('Semua akun ditandai Claim'); }
+}
+
+function confirmClearAll() {
+  closeMore();
+  if (!confirm('⚠️ HAPUS SEMUA data?\n\nIni akan menghapus seluruh akun & screenshot. Pastikan sudah backup JSON terlebih dahulu.\n\nLanjutkan?')) return;
+  if (!confirm('Konfirmasi sekali lagi: benar-benar hapus semua?')) return;
+  accounts = [];
+  if (save()) { renderTable(); showToast('Semua data dihapus'); }
+}
+
+/* ============================================================
+   MODAL (Add / Edit)
+============================================================ */
+function openAdd() {
+  editingIndex = -1;
+  editingDraft = blankAccount();
+  $('modal-title').textContent = '+ Tambah Akun Baru';
+  populateModal();
+  showModal();
+}
+
+function openDetail(i) {
+  editingIndex = i;
+  editingDraft = JSON.parse(JSON.stringify(accounts[i]));
+  if (!editingDraft.screenshots) editingDraft.screenshots = [];
+  $('modal-title').textContent = 'Detail Akun #' + (i + 1);
+  populateModal();
+  showModal();
+}
+
+function populateModal() {
+  $('m-email').value       = editingDraft.email || '';
+  $('m-password').value    = editingDraft.password || '';
+  $('m-password').type     = 'password';
+  $('m-status').value      = editingDraft.status || 'OK';
+  $('m-marketplace').value = editingDraft.marketplace || '';
+  $('m-orderid').value     = editingDraft.orderId || '';
+  $('m-orderdate').value   = editingDraft.orderDate || '';
+  $('m-claimdate').value   = editingDraft.claimDate || '';
+  $('m-reason').value      = editingDraft.reason || '';
+  $('m-note').value        = editingDraft.note || '';
+  renderScreenshotsInModal();
+}
+
+function showModal() { $('modal').hidden = false; document.body.style.overflow = 'hidden'; }
+function closeModal() {
+  $('modal').hidden = true;
+  document.body.style.overflow = '';
+  editingDraft = null;
+  editingIndex = -1;
+}
+
+function togglePwd() {
+  const inp = $('m-password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function saveModal() {
+  // collect
+  editingDraft.email       = $('m-email').value.trim();
+  editingDraft.password    = $('m-password').value;
+  editingDraft.status      = $('m-status').value;
+  editingDraft.marketplace = $('m-marketplace').value;
+  editingDraft.orderId     = $('m-orderid').value.trim();
+  editingDraft.orderDate   = $('m-orderdate').value;
+  editingDraft.claimDate   = $('m-claimdate').value;
+  editingDraft.reason      = $('m-reason').value.trim();
+  editingDraft.note        = $('m-note').value.trim();
+
+  if (!editingDraft.email)    { showToast('Email wajib diisi', true); $('m-email').focus(); return; }
+  if (!editingDraft.password) { showToast('Password wajib diisi', true); $('m-password').focus(); return; }
+
+  if (editingIndex === -1) accounts.push(editingDraft);
+  else accounts[editingIndex] = editingDraft;
+
+  if (save()) {
+    renderTable();
+    closeModal();
+    showToast('Tersimpan ✓');
+  }
+}
+
+/* ============================================================
+   SCREENSHOTS
+============================================================ */
+function renderScreenshotsInModal() {
+  const grid = $('m-screenshots');
+  grid.innerHTML = '';
+  (editingDraft.screenshots || []).forEach((ss, idx) => {
+    const div = document.createElement('div');
+    div.className = 'screenshot-thumb';
+    const img = document.createElement('img');
+    img.src = ss.dataUrl;
+    img.alt = ss.name || '';
+    img.addEventListener('click', () => openLightbox(ss.dataUrl));
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'remove';
+    removeBtn.title = 'Hapus';
+    removeBtn.textContent = '✕';
+    removeBtn.addEventListener('click', e => { e.stopPropagation(); removeScreenshot(idx); });
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = ss.name || ('img-' + (idx + 1));
+    div.appendChild(img);
+    div.appendChild(removeBtn);
+    div.appendChild(label);
+    grid.appendChild(div);
+  });
+}
+
+function removeScreenshot(idx) {
+  editingDraft.screenshots.splice(idx, 1);
+  renderScreenshotsInModal();
+}
+
+async function compressImage(file, maxWidth = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round(h * (maxWidth / w)); w = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        // PNG kept as PNG only if has transparency. For screenshots, JPEG is fine and much smaller.
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error('Gagal membaca gambar'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleFiles(fileList) {
+  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  if (files.length === 0) { showToast('Hanya file gambar yang didukung', true); return; }
+  showToast('Memproses ' + files.length + ' gambar…');
+  for (const f of files) {
+    try {
+      const dataUrl = await compressImage(f);
+      editingDraft.screenshots.push({
+        name: f.name,
+        dataUrl: dataUrl,
+        addedAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error(e);
+      showToast('Gagal proses: ' + f.name, true);
+    }
+  }
+  renderScreenshotsInModal();
+  showToast('Gambar ditambahkan (klik Simpan untuk menyimpan)');
+}
+
+/* ============================================================
+   LIGHTBOX
+============================================================ */
+function openLightbox(src) {
+  $('lightbox-img').src = src;
+  $('lightbox').hidden = false;
+}
+function closeLightbox() {
+  $('lightbox').hidden = true;
+  $('lightbox-img').src = '';
+}
+
+/* ============================================================
+   IMPORT / EXPORT
+============================================================ */
+function exportJSON() {
+  closeMore();
+  const blob = new Blob([JSON.stringify(accounts, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'garansi-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Backup JSON di-download');
+}
+
+function importJSON(ev) {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!Array.isArray(parsed)) throw new Error('Format JSON tidak valid');
+      const choice = confirm(
+        'Import ' + parsed.length + ' akun.\n\n' +
+        'OK = TIMPA semua data saat ini\n' +
+        'Batal = GABUNG dengan data saat ini'
+      );
+      const incoming = parsed.map(a => ({ ...blankAccount(), ...a, screenshots: a.screenshots || [] }));
+      if (choice) {
+        accounts = incoming;
+      } else {
+        accounts = accounts.concat(incoming);
+      }
+      if (save()) { renderTable(); showToast('Import berhasil: ' + incoming.length + ' akun'); }
+    } catch (err) {
+      showToast('Gagal import: ' + err.message, true);
+    }
+    ev.target.value = '';
+  };
+  reader.readAsText(f);
+}
+
+/* ---------- Self-contained HTML export for warranty team ---------- */
+function exportSelfContained() {
+  if (accounts.length === 0) { showToast('Tidak ada data untuk di-export', true); return; }
+  const html = buildReadOnlyHTML(accounts);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'garansi-review-' + new Date().toISOString().slice(0, 10) + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('File review di-download — kirim ke team garansi');
+}
+
+function buildReadOnlyHTML(data) {
+  const exportDate = new Date().toLocaleString('id-ID');
+  const dataJson = JSON.stringify(data).replace(/</g, '\\u003c');
+  return `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review Akun Garansi - ${exportDate}</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background:#0f172a; color:#e2e8f0; margin:0; padding:20px; }
+.container { max-width:1280px; margin:0 auto; }
+h1 { color:#60a5fa; margin:0 0 6px; text-align:center; }
+.subtitle { text-align:center; color:#94a3b8; margin:0 0 8px; }
+.export-info { text-align:center; color:#64748b; font-size:13px; margin-bottom:24px; }
+.badge-readonly { display:inline-block; background:#10b981; color:#0f172a; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:bold; margin:0 6px; }
+.toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+.toolbar input, .toolbar select { background:#1e2937; color:#e2e8f0; border:1px solid #334155; padding:9px 12px; border-radius:8px; font-size:14px; }
+.toolbar input { flex:1; min-width:220px; }
+.stats { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+.stat { background:#1e2937; padding:10px 14px; border-radius:8px; border:1px solid #334155; font-size:14px; }
+.stat .label { color:#94a3b8; } .stat .value { font-weight:bold; margin-left:6px; }
+.stat .value.claim { color:#f59e0b; } .stat .value.backfree { color:#eab308; }
+.stat .value.suspend { color:#ef4444; } .stat .value.ok { color:#22c55e; }
+.account-card { background:#1e2937; border:1px solid #334155; border-radius:12px; padding:18px; margin-bottom:14px; }
+.account-card h3 { margin:0 0 12px; color:#60a5fa; font-size:16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.account-card h3 .num { background:#334155; color:#94a3b8; padding:2px 8px; border-radius:6px; font-size:13px; }
+.field-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px 18px; margin-bottom:14px; }
+.field { font-size:14px; }
+.field .l { display:block; color:#94a3b8; font-size:12px; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.4px; }
+.field .v { color:#e2e8f0; word-break:break-word; }
+.field code { background:#334155; padding:3px 7px; border-radius:4px; font-size:13px; }
+.full { grid-column:1 / -1; }
+.status { padding:3px 10px; border-radius:20px; font-size:12px; font-weight:bold; display:inline-block; }
+.status-claim { background:#f59e0b; color:#0f172a; } .status-backfree { background:#eab308; color:#0f172a; }
+.status-suspend { background:#ef4444; color:white; } .status-ok { background:#22c55e; color:#0f172a; }
+.ss-section { border-top:1px solid #334155; padding-top:14px; margin-top:8px; }
+.ss-section h4 { margin:0 0 10px; color:#60a5fa; font-size:14px; }
+.ss-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
+.ss-thumb { background:#0f172a; border-radius:8px; overflow:hidden; aspect-ratio:1; cursor:zoom-in; position:relative; }
+.ss-thumb img { width:100%; height:100%; object-fit:cover; }
+.ss-thumb .lbl { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); color:white; font-size:11px; padding:3px 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.no-ss { color:#94a3b8; font-style:italic; font-size:13px; }
+.lightbox { position:fixed; inset:0; background:rgba(0,0,0,0.94); z-index:200; display:none; align-items:center; justify-content:center; padding:30px; cursor:zoom-out; }
+.lightbox.show { display:flex; }
+.lightbox img { max-width:100%; max-height:100%; object-fit:contain; }
+.lightbox .hint { position:absolute; top:16px; right:20px; color:#94a3b8; font-size:14px; }
+.print-only { display:none; }
+@media print {
+  body { background:white; color:black; padding:0; }
+  .toolbar, .lightbox { display:none !important; }
+  .account-card { background:white; border:1px solid #ccc; page-break-inside:avoid; color:black; }
+  .account-card h3, .ss-section h4, h1 { color:#1e40af; }
+  .field .l { color:#64748b; } .field .v, .stat { color:black; }
+  .stat { background:white; border:1px solid #ccc; }
+}
+@media (max-width: 600px) { .field-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📋 Review Akun Garansi</h1>
+  <p class="subtitle">Daftar akun beserta bukti screenshot order untuk diperiksa team garansi <span class="badge-readonly">READ-ONLY</span></p>
+  <p class="export-info">Diekspor pada: <strong>${escapeHtml(exportDate)}</strong></p>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="🔍 Cari email, order ID, marketplace...">
+    <select id="filter">
+      <option value="">Semua Status</option>
+      <option value="Claim">Claim</option>
+      <option value="Backfree">Backfree</option>
+      <option value="Suspend">Suspend</option>
+      <option value="OK">OK</option>
+    </select>
+    <button onclick="window.print()" style="background:#475569;color:white;border:none;padding:9px 14px;border-radius:8px;font-weight:600;cursor:pointer;">🖨️ Cetak / Simpan PDF</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div id="cards"></div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('show')">
+  <span class="hint">Klik untuk tutup</span>
+  <img id="lightbox-img" alt="">
+</div>
+
+<script>
+const data = ${dataJson};
+
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function fmtDate(d) { return d || '—'; }
+
+function statusBadge(s) {
+  const cls = 'status-' + (s || 'ok').toLowerCase();
+  return '<span class="status ' + cls + '">' + esc((s || 'OK').toUpperCase()) + '</span>';
+}
+
+function render() {
+  const q = (document.getElementById('search').value || '').trim().toLowerCase();
+  const f = document.getElementById('filter').value;
+  const visible = data.filter(a => {
+    if (f && a.status !== f) return false;
+    if (q) {
+      const hay = [a.email, a.orderId, a.marketplace, a.note, a.reason].map(x => (x || '').toLowerCase()).join(' ');
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+
+  // Stats
+  const total = data.length;
+  const claim = data.filter(a => a.status === 'Claim').length;
+  const back = data.filter(a => a.status === 'Backfree').length;
+  const susp = data.filter(a => a.status === 'Suspend').length;
+  const ok = data.filter(a => a.status === 'OK').length;
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><span class="label">Total:</span><span class="value">' + total + '</span></div>' +
+    '<div class="stat"><span class="label">Claim:</span><span class="value claim">' + claim + '</span></div>' +
+    '<div class="stat"><span class="label">Backfree:</span><span class="value backfree">' + back + '</span></div>' +
+    '<div class="stat"><span class="label">Suspend:</span><span class="value suspend">' + susp + '</span></div>' +
+    '<div class="stat"><span class="label">OK:</span><span class="value ok">' + ok + '</span></div>' +
+    '<div class="stat"><span class="label">Ditampilkan:</span><span class="value">' + visible.length + '</span></div>';
+
+  // Cards
+  const html = visible.map((a, i) => {
+    const sss = (a.screenshots || []);
+    const ssHtml = sss.length === 0
+      ? '<div class="no-ss">⚠️ Tidak ada screenshot bukti order untuk akun ini.</div>'
+      : '<div class="ss-grid">' + sss.map((s, idx) =>
+          '<div class="ss-thumb">' +
+          '<img src="' + esc(s.dataUrl) + '" alt="">' +
+          '<div class="lbl">' + esc(s.name || ('img-' + (idx + 1))) + '</div></div>'
+        ).join('') + '</div>';
+    return '<div class="account-card">' +
+      '<h3><span class="num">#' + (i + 1) + '</span> ' + esc(a.email) + ' ' + statusBadge(a.status) + '</h3>' +
+      '<div class="field-grid">' +
+        '<div class="field"><span class="l">Password</span><span class="v"><code>' + esc(a.password) + '</code></span></div>' +
+        '<div class="field"><span class="l">Marketplace</span><span class="v">' + esc(a.marketplace || '—') + '</span></div>' +
+        '<div class="field"><span class="l">Order ID</span><span class="v">' + (a.orderId ? '<code>' + esc(a.orderId) + '</code>' : '—') + '</span></div>' +
+        '<div class="field"><span class="l">Tanggal Order</span><span class="v">' + esc(fmtDate(a.orderDate)) + '</span></div>' +
+        '<div class="field"><span class="l">Tanggal Claim</span><span class="v">' + esc(fmtDate(a.claimDate)) + '</span></div>' +
+        '<div class="field"><span class="l">Jumlah Screenshot</span><span class="v">' + sss.length + '</span></div>' +
+        (a.reason ? '<div class="field full"><span class="l">Alasan Claim</span><span class="v">' + esc(a.reason) + '</span></div>' : '') +
+        (a.note ? '<div class="field full"><span class="l">Catatan</span><span class="v">' + esc(a.note) + '</span></div>' : '') +
+      '</div>' +
+      '<div class="ss-section"><h4>📸 Screenshot Bukti Order (' + sss.length + ')</h4>' + ssHtml + '</div>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('cards').innerHTML = html ||
+    '<div style="text-align:center;padding:40px;color:#94a3b8;">Tidak ada akun yang cocok.</div>';
+
+  // delegate clicks on screenshot thumbnails
+  document.querySelectorAll('.ss-thumb').forEach(t => {
+    t.addEventListener('click', () => {
+      const img = t.querySelector('img');
+      if (img) openLb(img.src);
+    });
+  });
+}
+
+function openLb(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('filter').addEventListener('change', render);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('show');
+});
+
+render();
+<\/script>
+</body>
+</html>`;
+}
+
+/* ============================================================
+   "More" dropdown
+============================================================ */
+function toggleMore(e) {
+  e.stopPropagation();
+  $('more-dropdown').classList.toggle('open');
+}
+function closeMore() { $('more-dropdown').classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (!e.target.closest('#more-dropdown')) closeMore();
+});
+
+/* ============================================================
+   EVENTS
+============================================================ */
+function bindEvents() {
+  $('search').addEventListener('input', renderTable);
+  $('filter-status').addEventListener('change', renderTable);
+
+  // Upload area
+  const ua = $('upload-area');
+  const fi = $('m-files');
+  ua.addEventListener('click', () => fi.click());
+  fi.addEventListener('change', e => { handleFiles(e.target.files); fi.value = ''; });
+
+  ['dragenter', 'dragover'].forEach(ev => ua.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    ua.classList.add('dragover');
+  }));
+  ['dragleave', 'drop'].forEach(ev => ua.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    ua.classList.remove('dragover');
+  }));
+  ua.addEventListener('drop', e => {
+    if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+  });
+
+  // Modal close on outside click
+  $('modal').addEventListener('click', e => {
+    if (e.target === $('modal')) closeModal();
+  });
+
+  // ESC closes modal & lightbox
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (!$('lightbox').hidden) {
+        $('lightbox').hidden = true; $('lightbox-img').src = '';
+      } else if (!$('modal').hidden) {
+        closeModal();
+      }
+    }
+  });
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  loadAccounts();
+  renderTable();
+  bindEvents();
+});
+</script>
+</body>
+</html>
